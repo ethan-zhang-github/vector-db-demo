@@ -23,6 +23,8 @@ import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -92,16 +94,19 @@ public class SimilaritySearchTest {
             .execute();
         EmbeddingData embedding = response.getData().get(0);
         List<BigDecimal> vector = embedding.getEmbedding();
-        System.out.printf("%s => %s", text, vector);
+        System.out.printf("%s => %s\n", text, vector);
         List<BaseVector> singleVectorSearchData = Collections.singletonList(
             new FloatVec(vector.stream().map(BigDecimal::floatValue).collect(Collectors.toList())));
         SearchReq searchReq = SearchReq.builder()
             .collectionName(collectionName)
             .data(singleVectorSearchData)
             .topK(3)
+            .outputFields(Arrays.asList("id", "score", "text"))
             .build();
         SearchResp singleVectorSearchRes = MilvusClientHolder.getClient().search(searchReq);
-        System.out.println(gson.toJson(singleVectorSearchRes));
+        System.out.println("similarity search result: ");
+        singleVectorSearchRes.getSearchResults().stream().flatMap(Collection::stream)
+            .forEach(rst -> System.out.printf("score: %s, text: %s\n", rst.getScore(), rst.getEntity().get("text")));
     }
 
     @Test
