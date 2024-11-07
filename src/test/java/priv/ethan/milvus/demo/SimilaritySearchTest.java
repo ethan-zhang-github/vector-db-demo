@@ -1,5 +1,6 @@
 package priv.ethan.milvus.demo;
 
+import com.baidubce.qianfan.model.embedding.EmbeddingData;
 import com.baidubce.qianfan.model.embedding.EmbeddingResponse;
 import com.google.common.collect.Lists;
 import com.google.gson.Gson;
@@ -9,8 +10,12 @@ import io.milvus.v2.service.collection.request.CreateCollectionReq;
 import io.milvus.v2.service.collection.request.DropCollectionReq;
 import io.milvus.v2.service.vector.request.DeleteReq;
 import io.milvus.v2.service.vector.request.InsertReq;
+import io.milvus.v2.service.vector.request.SearchReq;
+import io.milvus.v2.service.vector.request.data.BaseVector;
+import io.milvus.v2.service.vector.request.data.FloatVec;
 import io.milvus.v2.service.vector.response.DeleteResp;
 import io.milvus.v2.service.vector.response.InsertResp;
+import io.milvus.v2.service.vector.response.SearchResp;
 import org.apache.commons.io.FileUtils;
 import org.junit.Test;
 
@@ -18,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -74,6 +80,28 @@ public class SimilaritySearchTest {
             InsertResp rst = MilvusClientHolder.getClient().insert(insertReq);
             System.out.printf("insert result: %s\n", gson.toJson(rst));
         });
+    }
+
+    @Test
+    public void similaritySearch() {
+        String text = "上海现在气温多少？";
+        EmbeddingResponse response = QianfanClientHolder.getClient().embedding()
+            // embedding model
+            .model("Embedding-V1")
+            .input(Collections.singletonList(text))
+            .execute();
+        EmbeddingData embedding = response.getData().get(0);
+        List<BigDecimal> vector = embedding.getEmbedding();
+        System.out.printf("%s => %s", text, vector);
+        List<BaseVector> singleVectorSearchData = Collections.singletonList(
+            new FloatVec(vector.stream().map(BigDecimal::floatValue).collect(Collectors.toList())));
+        SearchReq searchReq = SearchReq.builder()
+            .collectionName(collectionName)
+            .data(singleVectorSearchData)
+            .topK(3)
+            .build();
+        SearchResp singleVectorSearchRes = MilvusClientHolder.getClient().search(searchReq);
+        System.out.println(gson.toJson(singleVectorSearchRes));
     }
 
     @Test
