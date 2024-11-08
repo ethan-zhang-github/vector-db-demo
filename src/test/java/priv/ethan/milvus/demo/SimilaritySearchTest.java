@@ -17,16 +17,21 @@ import io.milvus.v2.service.vector.response.DeleteResp;
 import io.milvus.v2.service.vector.response.InsertResp;
 import io.milvus.v2.service.vector.response.SearchResp;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class SimilaritySearchTest {
@@ -117,6 +122,62 @@ public class SimilaritySearchTest {
             .build();
         DeleteResp deleteRes = MilvusClientHolder.getClient().delete(deleteReq);
         System.out.println(gson.toJson(deleteRes));
+    }
+
+    @Test
+    public void readText() throws IOException {
+        List<AlibabaJavaText> texts = parseAlibabaJavaTexts();
+        texts.forEach(text -> System.out.println(gson.toJson(text)));
+    }
+
+    private List<AlibabaJavaText> parseAlibabaJavaTexts() throws IOException {
+        List<String> lines = FileUtils.readLines(new File("docs/alibaba_java.txt"), StandardCharsets.UTF_8);
+        List<AlibabaJavaText> texts = new ArrayList<>();
+        Iterator<String> iterator = lines.iterator();
+        String firstHeadline = "";
+        String secondHeadline = "";
+        AlibabaJavaText text = new AlibabaJavaText();
+        while (iterator.hasNext()) {
+            String line = iterator.next();
+            if (isFirstHeadline(line)) {
+                firstHeadline = line;
+                continue;
+            }
+            if (isSecondHeadline(line)) {
+                secondHeadline = line;
+                continue;
+            }
+            if (isThirdHeadline(line)) {
+                if (StringUtils.isNotBlank(text)) {
+                    texts.add(new AlibabaJavaText(firstHeadline, secondHeadline, text.toString()));
+                }
+                text = new StringBuilder(line);
+                continue;
+            }
+            text.append(line);
+        }
+        if (StringUtils.isNotBlank(text)) {
+            texts.add(new AlibabaJavaText(firstHeadline, secondHeadline, text.toString()));
+        }
+        return texts;
+    }
+
+    private boolean isFirstHeadline(String line) {
+        Pattern pattern = Pattern.compile("^[零一二三四五六七八九]+、");
+        Matcher matcher = pattern.matcher(line);
+        return matcher.find();
+    }
+
+    private boolean isSecondHeadline(String line) {
+        Pattern pattern = Pattern.compile("^\\([零一二三四五六七八九]+\\)");
+        Matcher matcher = pattern.matcher(line);
+        return matcher.find();
+    }
+
+    private boolean isThirdHeadline(String line) {
+        Pattern pattern = Pattern.compile("^\\d+\\.");
+        Matcher matcher = pattern.matcher(line);
+        return matcher.find() && line.contains("【");
     }
 
 }
