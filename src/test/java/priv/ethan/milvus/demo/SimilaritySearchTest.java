@@ -17,7 +17,6 @@ import io.milvus.v2.service.vector.response.DeleteResp;
 import io.milvus.v2.service.vector.response.InsertResp;
 import io.milvus.v2.service.vector.response.SearchResp;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 
 import java.io.File;
@@ -37,7 +36,7 @@ import java.util.stream.Collectors;
 public class SimilaritySearchTest {
 
     private final Gson gson = new Gson();
-    private final String collectionName = "collection_test_2";
+    private final String collectionName = "collection_test_3";
 
     @Test
     public void createCollection() {
@@ -60,23 +59,26 @@ public class SimilaritySearchTest {
 
     @Test
     public void embedding() throws IOException {
-        List<String> texts = FileUtils.readLines(new File("docs/texts.txt"), StandardCharsets.UTF_8);
+//        List<String> texts = FileUtils.readLines(new File("docs/texts.txt"), StandardCharsets.UTF_8);
+        List<AlibabaJavaText> texts = parseAlibabaJavaTexts();
         Lists.partition(texts, 16).forEach(partition -> {
             // vector embedding
             EmbeddingResponse response = QianfanClientHolder.getClient().embedding()
                 // embedding model
                 .model("Embedding-V1")
-                .input(partition)
+                .input(partition.stream().map(AlibabaJavaText::toString).collect(Collectors.toList()))
                 .execute();
             List<JsonObject> insertData = response.getData().stream().map(embedding -> {
-                String text = partition.get(embedding.getIndex());
+                AlibabaJavaText text = partition.get(embedding.getIndex());
                 List<BigDecimal> vector = embedding.getEmbedding();
                 System.out.printf("%s => %s\n", text, vector);
                 JsonObject row = new JsonObject();
                 JsonArray vectorArray = new JsonArray();
                 vector.forEach(vectorArray::add);
                 row.add("vector", vectorArray);
-                row.addProperty("text", text);
+                row.addProperty("h1", text.getFirstHeadline());
+                row.addProperty("h2", text.getSecondHeadline());
+                row.addProperty("text", text.getText());
                 return row;
             }).collect(Collectors.toList());
             // insert data
@@ -91,7 +93,7 @@ public class SimilaritySearchTest {
 
     @Test
     public void similaritySearch() {
-        String text = "上海现在气温多少？";
+        String text = "给我一些线程池使用方面的建议";
         EmbeddingResponse response = QianfanClientHolder.getClient().embedding()
             // embedding model
             .model("Embedding-V1")
@@ -106,12 +108,13 @@ public class SimilaritySearchTest {
             .collectionName(collectionName)
             .data(singleVectorSearchData)
             .topK(3)
-            .outputFields(Arrays.asList("id", "score", "text"))
+            .outputFields(Arrays.asList("id", "score", "h1", "h2", "text"))
             .build();
         SearchResp singleVectorSearchRes = MilvusClientHolder.getClient().search(searchReq);
         System.out.println("similarity search result: ");
         singleVectorSearchRes.getSearchResults().stream().flatMap(Collection::stream)
-            .forEach(rst -> System.out.printf("score: %s, text: %s\n", rst.getScore(), rst.getEntity().get("text")));
+            .forEach(rst -> System.out.printf("score: %s, h1: %s, h2: %s, text: %s\n", rst.getScore(),
+                rst.getEntity().get("h1"), rst.getEntity().get("h2"), rst.getEntity().get("text")));
     }
 
     @Test
@@ -127,6 +130,7 @@ public class SimilaritySearchTest {
     @Test
     public void readText() throws IOException {
         List<AlibabaJavaText> texts = parseAlibabaJavaTexts();
+        System.out.println(texts.size());
         texts.forEach(text -> System.out.println(gson.toJson(text)));
     }
 
@@ -134,30 +138,37 @@ public class SimilaritySearchTest {
         List<String> lines = FileUtils.readLines(new File("docs/alibaba_java.txt"), StandardCharsets.UTF_8);
         List<AlibabaJavaText> texts = new ArrayList<>();
         Iterator<String> iterator = lines.iterator();
-        String firstHeadline = "";
-        String secondHeadline = "";
         AlibabaJavaText text = new AlibabaJavaText();
         while (iterator.hasNext()) {
             String line = iterator.next();
             if (isFirstHeadline(line)) {
-                firstHeadline = line;
+                if (text.isNotBlank()) {
+                    texts.add(text.clone());
+                    text.clear();
+                }
+                text.setFirstHeadline(line);
                 continue;
             }
             if (isSecondHeadline(line)) {
-                secondHeadline = line;
+                if (text.isNotBlank()) {
+                    texts.add(text.clone());
+                    text.clear();
+                }
+                text.setSecondHeadline(line);
                 continue;
             }
             if (isThirdHeadline(line)) {
-                if (StringUtils.isNotBlank(text)) {
-                    texts.add(new AlibabaJavaText(firstHeadline, secondHeadline, text.toString()));
+                if (text.isNotBlank()) {
+                    texts.add(text.clone());
+                    text.clear();
                 }
-                text = new StringBuilder(line);
+                text.append(line);
                 continue;
             }
             text.append(line);
         }
-        if (StringUtils.isNotBlank(text)) {
-            texts.add(new AlibabaJavaText(firstHeadline, secondHeadline, text.toString()));
+        if (text.isNotBlank()) {
+            texts.add(text.clone());
         }
         return texts;
     }
