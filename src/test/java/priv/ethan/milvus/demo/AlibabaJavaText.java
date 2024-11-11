@@ -3,7 +3,10 @@ package priv.ethan.milvus.demo;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.collections.CollectionUtils;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -14,30 +17,33 @@ public class AlibabaJavaText {
 
     private String secondHeadline;
 
-    private String text = "";
+    private List<String> lines = new ArrayList<>();
 
     public boolean isNotBlank() {
-        return StringUtils.isNotBlank(text);
+        return CollectionUtils.isNotEmpty(lines);
     }
 
     public void clear() {
-        this.text = "";
+        this.lines.clear();
     }
 
     public void append(String line) {
-        this.text += line;
+        this.lines.add(line);
     }
 
     public AlibabaJavaText clone() {
         AlibabaJavaText clone = new AlibabaJavaText();
         clone.setFirstHeadline(firstHeadline);
         clone.setSecondHeadline(secondHeadline);
-        clone.setText(text);
+        clone.setLines(new ArrayList<>(lines));
         return clone;
     }
 
-    @Override
-    public String toString() {
-        return String.format("%s-%s-%s", firstHeadline, secondHeadline, text);
+    public String getText() {
+        return String.join("；", lines);
+    }
+
+    public String format() {
+        return String.join("\n", lines);
     }
 }

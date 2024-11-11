@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 public class SimilaritySearchTest {
 
     private final Gson gson = new Gson();
-    private final String collectionName = "collection_test_3";
+    private final String collectionName = "collection_test_2";
 
     @Test
     public void createCollection() {
@@ -59,26 +59,25 @@ public class SimilaritySearchTest {
 
     @Test
     public void embedding() throws IOException {
-//        List<String> texts = FileUtils.readLines(new File("docs/texts.txt"), StandardCharsets.UTF_8);
         List<AlibabaJavaText> texts = parseAlibabaJavaTexts();
         Lists.partition(texts, 16).forEach(partition -> {
             // vector embedding
             EmbeddingResponse response = QianfanClientHolder.getClient().embedding()
                 // embedding model
                 .model("Embedding-V1")
-                .input(partition.stream().map(AlibabaJavaText::toString).collect(Collectors.toList()))
+                .input(partition.stream().map(AlibabaJavaText::getText).collect(Collectors.toList()))
                 .execute();
             List<JsonObject> insertData = response.getData().stream().map(embedding -> {
                 AlibabaJavaText text = partition.get(embedding.getIndex());
                 List<BigDecimal> vector = embedding.getEmbedding();
-                System.out.printf("%s => %s\n", text, vector);
+                System.out.printf("%s\n=>%s\n", text.getText(), vector);
                 JsonObject row = new JsonObject();
                 JsonArray vectorArray = new JsonArray();
                 vector.forEach(vectorArray::add);
                 row.add("vector", vectorArray);
                 row.addProperty("h1", text.getFirstHeadline());
                 row.addProperty("h2", text.getSecondHeadline());
-                row.addProperty("text", text.getText());
+                row.addProperty("text", text.format());
                 return row;
             }).collect(Collectors.toList());
             // insert data
@@ -93,7 +92,7 @@ public class SimilaritySearchTest {
 
     @Test
     public void similaritySearch() {
-        String text = "给我一些线程池使用方面的建议";
+        String text = "创建线程池应该注意哪些问题？";
         EmbeddingResponse response = QianfanClientHolder.getClient().embedding()
             // embedding model
             .model("Embedding-V1")
@@ -113,7 +112,7 @@ public class SimilaritySearchTest {
         SearchResp singleVectorSearchRes = MilvusClientHolder.getClient().search(searchReq);
         System.out.println("similarity search result: ");
         singleVectorSearchRes.getSearchResults().stream().flatMap(Collection::stream)
-            .forEach(rst -> System.out.printf("score: %s, h1: %s, h2: %s, text: %s\n", rst.getScore(),
+            .forEach(rst -> System.out.printf("score: %s\nh1: %s\nh2: %s\n%s\n", rst.getScore(),
                 rst.getEntity().get("h1"), rst.getEntity().get("h2"), rst.getEntity().get("text")));
     }
 
@@ -121,7 +120,7 @@ public class SimilaritySearchTest {
     public void deleteEntities() {
         DeleteReq deleteReq = DeleteReq.builder()
             .collectionName(collectionName)
-            .filter("id in [453466849448688693, 453466849448688694, 453466849448688695]")
+            .filter("id > 0")
             .build();
         DeleteResp deleteRes = MilvusClientHolder.getClient().delete(deleteReq);
         System.out.println(gson.toJson(deleteRes));
