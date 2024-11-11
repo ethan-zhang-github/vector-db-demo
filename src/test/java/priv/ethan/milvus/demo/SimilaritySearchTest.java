@@ -106,14 +106,15 @@ public class SimilaritySearchTest {
         SearchReq searchReq = SearchReq.builder()
             .collectionName(collectionName)
             .data(singleVectorSearchData)
-            .topK(3)
+            .topK(5)
             .outputFields(Arrays.asList("id", "score", "h1", "h2", "text"))
             .build();
         SearchResp singleVectorSearchRes = MilvusClientHolder.getClient().search(searchReq);
         System.out.println("similarity search result: ");
         singleVectorSearchRes.getSearchResults().stream().flatMap(Collection::stream)
-            .forEach(rst -> System.out.printf("score: %s\nh1: %s\nh2: %s\n%s\n", rst.getScore(),
-                rst.getEntity().get("h1"), rst.getEntity().get("h2"), rst.getEntity().get("text")));
+            .forEach(rst -> System.out.printf(
+                "================================================================\nscore: %s\nh1: %s\nh2: %s\n%s\n================================================================\n",
+                rst.getScore(), rst.getEntity().get("h1"), rst.getEntity().get("h2"), rst.getEntity().get("text")));
     }
 
     @Test
