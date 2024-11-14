@@ -1,14 +1,12 @@
-package priv.ethan.milvus.demo;
+package priv.ethan.vector.db.demo;
 
 import com.google.gson.Gson;
 import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
-import io.pinecone.clients.Index;
 import io.pinecone.unsigned_indices_model.QueryResponseWithUnsignedIndices;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.junit.Test;
-import org.openapitools.db_control.client.model.DeletionProtection;
 import org.openapitools.db_control.client.model.IndexModel;
 import org.openapitools.inference.client.ApiException;
 import org.openapitools.inference.client.model.Embedding;
@@ -33,8 +31,7 @@ public class PineconeTest {
 
     @Test
     public void createIndex() {
-        IndexModel indexModel = PineconeClientHolder.getPc()
-            .createServerlessIndex(indexName, "cosine", 1024, "aws", "us-east-1", DeletionProtection.DISABLED);
+        IndexModel indexModel = PineconeHelper.createIndex(indexName);
         System.out.println(gson.toJson(indexModel));
     }
 
@@ -52,7 +49,7 @@ public class PineconeTest {
             Struct metaData = Struct.newBuilder()
                 .putFields("text", Value.newBuilder().setStringValue(data.get(i).getText()).build())
                 .build();
-            getIndex().upsert(id, vector, null, null, metaData, null);
+            PineconeHelper.getIndex(indexName).upsert(id, vector, null, null, metaData, null);
         }
     }
 
@@ -61,7 +58,7 @@ public class PineconeTest {
         Embedding embedding = PineconeHelper.embedding("Tell me about the tech company known as Apple.", "query");
         List<Float> vector = convert(embedding.getValues());
         // Search the index for the three most similar vectors
-        QueryResponseWithUnsignedIndices queryResponse = getIndex().query(3,
+        QueryResponseWithUnsignedIndices queryResponse = PineconeHelper.getIndex(indexName).query(3,
             vector, null, null, null, null, null, true,
             true);
         queryResponse.getMatchesList().forEach(
@@ -71,12 +68,7 @@ public class PineconeTest {
 
     @Test
     public void deleteAll() {
-        getIndex().deleteAll(null);
-    }
-
-    private Index getIndex() {
-        // Target the index where you'll store the vector embeddings
-        return PineconeClientHolder.getPc().getIndexConnection(indexName);
+        PineconeHelper.getIndex(indexName).deleteAll(null);
     }
 
     private List<DataObject> getData() {

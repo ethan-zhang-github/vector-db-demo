@@ -1,4 +1,4 @@
-package priv.ethan.milvus.demo;
+package priv.ethan.vector.db.demo;
 
 import com.baidubce.qianfan.Qianfan;
 

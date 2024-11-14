@@ -1,4 +1,4 @@
-package priv.ethan.milvus.demo;
+package priv.ethan.vector.db.demo;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -13,9 +13,9 @@ import java.util.List;
 @Data
 public class AlibabaJavaText {
 
-    private String firstHeadline;
+    private String h1;
 
-    private String secondHeadline;
+    private String h2;
 
     private List<String> lines = new ArrayList<>();
 
@@ -33,8 +33,8 @@ public class AlibabaJavaText {
 
     public AlibabaJavaText clone() {
         AlibabaJavaText clone = new AlibabaJavaText();
-        clone.setFirstHeadline(firstHeadline);
-        clone.setSecondHeadline(secondHeadline);
+        clone.setH1(h1);
+        clone.setH2(h2);
         clone.setLines(new ArrayList<>(lines));
         return clone;
     }

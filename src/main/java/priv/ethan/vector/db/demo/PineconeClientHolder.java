@@ -1,4 +1,4 @@
-package priv.ethan.milvus.demo;
+package priv.ethan.vector.db.demo;
 
 import io.pinecone.clients.Inference;
 import io.pinecone.clients.Pinecone;

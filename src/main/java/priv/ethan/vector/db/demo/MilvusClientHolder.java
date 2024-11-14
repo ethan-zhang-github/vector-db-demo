@@ -1,4 +1,4 @@
-package priv.ethan.milvus.demo;
+package priv.ethan.vector.db.demo;
 
 import io.milvus.v2.client.ConnectConfig;
 import io.milvus.v2.client.MilvusClientV2;

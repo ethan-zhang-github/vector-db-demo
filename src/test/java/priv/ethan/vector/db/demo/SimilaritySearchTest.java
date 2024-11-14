@@ -1,4 +1,4 @@
-package priv.ethan.milvus.demo;
+package priv.ethan.vector.db.demo;
 
 import com.baidubce.qianfan.model.embedding.EmbeddingData;
 import com.baidubce.qianfan.model.embedding.EmbeddingResponse;
@@ -16,21 +16,14 @@ import io.milvus.v2.service.vector.request.data.FloatVec;
 import io.milvus.v2.service.vector.response.DeleteResp;
 import io.milvus.v2.service.vector.response.InsertResp;
 import io.milvus.v2.service.vector.response.SearchResp;
-import org.apache.commons.io.FileUtils;
 import org.junit.Test;
 
-import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class SimilaritySearchTest {
@@ -59,7 +52,7 @@ public class SimilaritySearchTest {
 
     @Test
     public void embedding() throws IOException {
-        List<AlibabaJavaText> texts = parseAlibabaJavaTexts();
+        List<AlibabaJavaText> texts = ParseHelper.parseAlibabaJavaTexts();
         Lists.partition(texts, 16).forEach(partition -> {
             // vector embedding
             EmbeddingResponse response = QianfanClientHolder.getClient().embedding()
@@ -75,8 +68,8 @@ public class SimilaritySearchTest {
                 JsonArray vectorArray = new JsonArray();
                 vector.forEach(vectorArray::add);
                 row.add("vector", vectorArray);
-                row.addProperty("h1", text.getFirstHeadline());
-                row.addProperty("h2", text.getSecondHeadline());
+                row.addProperty("h1", text.getH1());
+                row.addProperty("h2", text.getH2());
                 row.addProperty("text", text.format());
                 return row;
             }).collect(Collectors.toList());
@@ -129,66 +122,9 @@ public class SimilaritySearchTest {
 
     @Test
     public void readText() throws IOException {
-        List<AlibabaJavaText> texts = parseAlibabaJavaTexts();
+        List<AlibabaJavaText> texts = ParseHelper.parseAlibabaJavaTexts();
         System.out.println(texts.size());
         texts.forEach(text -> System.out.println(gson.toJson(text)));
-    }
-
-    private List<AlibabaJavaText> parseAlibabaJavaTexts() throws IOException {
-        List<String> lines = FileUtils.readLines(new File("docs/alibaba_java.txt"), StandardCharsets.UTF_8);
-        List<AlibabaJavaText> texts = new ArrayList<>();
-        Iterator<String> iterator = lines.iterator();
-        AlibabaJavaText text = new AlibabaJavaText();
-        while (iterator.hasNext()) {
-            String line = iterator.next();
-            if (isFirstHeadline(line)) {
-                if (text.isNotBlank()) {
-                    texts.add(text.clone());
-                    text.clear();
-                }
-                text.setFirstHeadline(line);
-                continue;
-            }
-            if (isSecondHeadline(line)) {
-                if (text.isNotBlank()) {
-                    texts.add(text.clone());
-                    text.clear();
-                }
-                text.setSecondHeadline(line);
-                continue;
-            }
-            if (isThirdHeadline(line)) {
-                if (text.isNotBlank()) {
-                    texts.add(text.clone());
-                    text.clear();
-                }
-                text.append(line);
-                continue;
-            }
-            text.append(line);
-        }
-        if (text.isNotBlank()) {
-            texts.add(text.clone());
-        }
-        return texts;
-    }
-
-    private boolean isFirstHeadline(String line) {
-        Pattern pattern = Pattern.compile("^[零一二三四五六七八九]+、");
-        Matcher matcher = pattern.matcher(line);
-        return matcher.find();
-    }
-
-    private boolean isSecondHeadline(String line) {
-        Pattern pattern = Pattern.compile("^\\([零一二三四五六七八九]+\\)");
-        Matcher matcher = pattern.matcher(line);
-        return matcher.find();
-    }
-
-    private boolean isThirdHeadline(String line) {
-        Pattern pattern = Pattern.compile("^\\d+\\.");
-        Matcher matcher = pattern.matcher(line);
-        return matcher.find() && line.contains("【");
     }
 
 }
