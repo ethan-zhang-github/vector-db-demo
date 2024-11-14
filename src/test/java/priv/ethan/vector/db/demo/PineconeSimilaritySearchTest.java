@@ -57,8 +57,13 @@ public class PineconeSimilaritySearchTest {
         QueryResponseWithUnsignedIndices response = RetryHelper.retryInMemory(100, 5,
             () -> PineconeHelper.similaritySearch(indexName, 5, vector));
         response.getMatchesList().forEach(
-            match -> System.out.printf("id: %s, score: %s, metadata: %s, vector: %s\n", match.getId(), match.getScore(),
-                match.getMetadata().getFieldsOrThrow("text").getStringValue(), match.getValuesList()));
+            match -> System.out.printf(
+                "===================================================\nid: %s\nscore: %s\nh1:%s\nh2:%s\ntext: %s\nvector: %s\n",
+                match.getId(), match.getScore(),
+                match.getMetadata().getFieldsOrThrow("h1").getStringValue(),
+                match.getMetadata().getFieldsOrThrow("h2").getStringValue(),
+                match.getMetadata().getFieldsOrThrow("text").getStringValue(),
+                match.getValuesList()));
     }
 
     @Test
