@@ -58,9 +58,7 @@ public class PineconeTest {
         Embedding embedding = PineconeHelper.embedding("Tell me about the tech company known as Apple.", "query");
         List<Float> vector = convert(embedding.getValues());
         // Search the index for the three most similar vectors
-        QueryResponseWithUnsignedIndices queryResponse = PineconeHelper.getIndex(indexName).query(3,
-            vector, null, null, null, null, null, true,
-            true);
+        QueryResponseWithUnsignedIndices queryResponse = PineconeHelper.similaritySearch(indexName, 3, vector);
         queryResponse.getMatchesList().forEach(
             match -> System.out.printf("id: %s, score: %s, metadata: %s, vector: %s\n", match.getId(), match.getScore(),
                 match.getMetadata().getFieldsOrThrow("text").getStringValue(), match.getValuesList()));

@@ -2,6 +2,7 @@ package priv.ethan.vector.db.demo;
 
 import com.google.common.collect.Lists;
 import io.pinecone.clients.Index;
+import io.pinecone.unsigned_indices_model.QueryResponseWithUnsignedIndices;
 import lombok.extern.slf4j.Slf4j;
 import org.openapitools.db_control.client.model.DeletionProtection;
 import org.openapitools.db_control.client.model.IndexModel;
@@ -32,7 +33,7 @@ public class PineconeHelper {
         return PineconeClientHolder.getPc().getIndexConnection(indexName);
     }
 
-    public static List<Embedding> embedding(List<String> inputs, String inputType) throws ApiException {
+    public static List<Embedding> embedding(List<String> inputs, String inputType) {
         List<Embedding> rst = new ArrayList<>(inputs.size());
         Lists.partition(inputs, 96).forEach(partition -> {
             Map<String, Object> parameters = new HashMap<>();
@@ -45,13 +46,20 @@ public class PineconeHelper {
                 rst.addAll(embeddings);
             } catch (ApiException e) {
                 log.error("embedding error", e);
+                throw new RuntimeException("embedding error", e);
             }
         });
         return rst;
     }
 
-    public static Embedding embedding(String input, String inputType) throws ApiException {
+    public static Embedding embedding(String input, String inputType) {
         return embedding(Collections.singletonList(input), inputType).iterator().next();
+    }
+
+    public static QueryResponseWithUnsignedIndices similaritySearch(String indexName, int topK, List<Float> vector) {
+        return PineconeHelper.getIndex(indexName).query(topK,
+            vector, null, null, null, null, null, true,
+            true);
     }
 
 }
